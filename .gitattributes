@@ -1,0 +1,3 @@
+# Store text files with LF line endings in the repo and in every checkout,
+# so Windows, Linux CI and the worker's Docker image all see the same files.
+* text=auto eol=lf
