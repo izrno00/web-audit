@@ -1,6 +1,6 @@
 # SiteLens — Database and Data Architecture (DB)
 
-**Status:** v1, approved by the product owner · 22 Nov 2026
+**Status:** v1.1 · approved by the product owner 22 Nov 2026, updated 23 Nov 2026 (see the change log at the end)
 **Database:** Supabase Postgres (Frankfurt), with Supabase Auth and Storage. The job queue is pg-boss, which keeps its own `pgboss` schema.
 **Companion documents:** [PRD.md](PRD.md) · [Tech.md](Tech.md) · [UI-rules.md](UI-rules.md)
 
@@ -965,6 +965,12 @@ All of these are `SECURITY DEFINER` with `search_path` pinned. Functions that en
 
 The atomic reservation (PRD §12). Its arguments are `p_user_id`, `p_website_id` (null when the quick box creates the website), `p_client_id`, `p_entered_url`, `p_entered_site_key`, `p_mode`, `p_email_hash` and `p_ip_hash`. It returns `(audit_id, error_code, retry_after)`.
 
+**Delivered in two phases.** The signature and the tables are complete from Phase 1, so Phase 3 needs no data migration.
+- **Phase 1** implements the profile lock (`EMAIL_NOT_VERIFIED`), **L12**, the site advisory lock, **L10**, the **website limit**, **L7**, admin bypass logging, all the writes in step 5 that these rules need, and the outbox (step 6). `p_email_hash` and `p_ip_hash` are accepted but not used yet.
+- **Phase 3** adds **L1–L6, L8, L9 and L11** by replacing the function (`create or replace`), with no data migration.
+- `reserve_final_site` (§6.2) follows the same split: Phase 1 re-checks L12 and L7 for the final key; L6 arrives in Phase 3.
+- In Phases 1–2, sign-in is limited to an allowlist, and this is how the missing free-plan rules are covered (PRD §2).
+
 **Before calling it, the server action:**
 - confirms the session;
 - normalizes the URL and computes its site key;
@@ -1073,4 +1079,13 @@ These are scheduled pg-boss jobs that run in the worker.
 - **Locally:** `supabase start`, then `supabase db reset` applies migrations and seed data (`supabase/seed.sql`: plans, settings and a development admin).
 - **Production:** `supabase db push`, run by hand in Phase 1 and from GitHub Actions on `main`, with approval, from Phase 3.
 - **Generated types:** `supabase gen types typescript` writes them to `packages/core/src/db/types.ts`, and CI fails if they're out of date.
-- **Tests:** pgTAP tests in `supabase/tests/` cover the RLS policies, the snapshot trigger and every `start_audit` limit, including concurrent calls.
+- **Tests:** pgTAP tests in `supabase/tests/` cover the RLS policies, the snapshot trigger and every `start_audit` limit, including concurrent calls. The limit tests follow the §6.1 phase split: Phase 1 tests L7, L10, L12, the website limit and admin bypass logging; the tests for L1–L6, L8, L9 and L11 are added in Phase 3 with the function that enforces them.
+
+---
+
+## Change log
+
+| Version | Date | Changes |
+|---|---|---|
+| v1 | 22 Nov 2026 | Approved by the owner |
+| v1.1 | 23 Nov 2026 | §6.1: `start_audit` delivered in two phases (Phase 1: L7, L10, L12, the website limit, admin bypass logging and the outbox; Phase 3: L1–L6, L8, L9 and L11, with no data migration); `reserve_final_site` follows the same split. §9: pgTAP limit tests follow the split |

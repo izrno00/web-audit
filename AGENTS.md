@@ -10,14 +10,18 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## SiteLens project documents are the source of truth
 
-Before starting any task, every agent must read these four files at the repository root:
+The owner approved all four documents on 22 Nov 2026, so implementation has started. They live in [docs/](docs/):
 
 | File | What it defines |
 |---|---|
-| [PRD.md](PRD.md) | Product scope, phases, features, checks, scoring, AI rules, limits, acceptance criteria |
-| [DB.md](DB.md) | Database schema, enums, access policies (RLS), database functions, storage, retention |
-| [Tech.md](Tech.md) | Tech stack, architecture, audit pipeline, security, integrations, testing, deployment |
-| [UI-rules.md](UI-rules.md) | Design tokens, layout, screens, components, states, exact interface wording, accessibility |
+| [docs/PRD.md](docs/PRD.md) | Product scope, phases, features, checks, scoring, AI rules, limits, acceptance criteria |
+| [docs/DB.md](docs/DB.md) | Database schema, enums, access policies (RLS), database functions, storage, retention |
+| [docs/Tech.md](docs/Tech.md) | Tech stack, architecture, audit pipeline, security, integrations, testing, deployment |
+| [docs/UI-rules.md](docs/UI-rules.md) | Design tokens, layout, screens, components, states, exact interface wording, accessibility |
+
+**How work is organized.** Work runs task by task, following [tasks/Tasks.md](tasks/Tasks.md). A planning agent writes a plan file for one task, the owner approves it, and an executing agent implements it and opens a pull request. Tasks.md describes the workflow, the standing rules, the definition of done and every task card.
+
+**What to read.** Before starting a task, read the doc sections the task card lists under **Read** closely, and skim the rest of the four docs.
 
 Rules:
 
@@ -30,6 +34,5 @@ Rules:
   - the documents conflict with each other;
   - something you need isn't covered.
 - **Change the documents first.** Any change to scope, stack, schema or interface must first be made in the relevant document and approved by the owner. Only then is it implemented. Code and documents must always agree.
-- **Respect open items.** Items marked **OPEN** or **Proposed — review** (PRD.md §17) are not final. Don't treat them as decided until the owner confirms them.
-- **No application code before approval.** Until the owner has explicitly approved all four documents, don't write application code.
+- **Respect open items.** Items marked **OPEN** (PRD.md §17) are not decided until the owner confirms them. The **Proposed — review** defaults are accepted for Phase 1 (O8) and are revisited with real audit data.
 - **How the Next.js rule fits in.** The Next.js rule above still applies: the bundled docs in `node_modules/next/dist/docs/` decide *how* to use Next.js APIs, and these four documents decide *what* to build.

@@ -1,6 +1,6 @@
 # SiteLens — Interface Rules (UI-rules)
 
-**Status:** v1, approved by the product owner · 22 Nov 2026
+**Status:** v1.1 · approved by the product owner 22 Nov 2026, updated 23 Nov 2026 (see the change log at the end)
 **Companion documents:** [PRD.md](PRD.md) · [DB.md](DB.md) · [Tech.md](Tech.md)
 **Source of the design system:** the shadcn preset already installed in the repo (`components.json`, `app/globals.css`, `app/layout.tsx`). The exact component list is finalized after connecting the shadcn MCP (§15).
 
@@ -309,6 +309,7 @@ It is **designed with the owner, section by section.**
 ### 6.15 Auth screens
 - **Sign in:** centered card, SiteLens wordmark, "Continue with Google". Email/password arrives in Phase 3 with a link to sign up.
 - **Errors:** shown inline.
+- **Not on the allowlist (Phases 1–2):** the Google sign-in completes, the user is signed out again, and the sign-in card shows the `EMAIL_NOT_ALLOWED` message (§9.4) inline.
 - **After email sign-up:** a "Check your inbox" state.
 
 ---
@@ -492,6 +493,12 @@ The wording below is exact. `[date]` uses the date format in §14; `[time]` adds
 - **AI:** "AI-generated. Based on the page content and screenshots captured during this audit. It may be wrong — verify before acting." Visual analysis adds: "Doesn't predict conversion rates."
 - **Public report footer:** "Automated assessment by SiteLens. Not affiliated with or endorsed by the site owner." followed by "Request removal: [contact]".
 
+### 9.4 Sign-in messages
+
+| Code | Message | Phase |
+|---|---|---|
+| `EMAIL_NOT_ALLOWED` | This account doesn't have access to SiteLens yet. | 1–2 (removed with the allowlist in Phase 3) |
+
 ---
 
 ## 10. Reports and PDF
@@ -615,3 +622,12 @@ Every page has the footer "SiteLens · example.com · 22 Nov 2026 · Page 3 of 1
 - Add the new tokens from §3 to `globals.css` (`:root` and `.dark`), map them in `@theme inline`, and run the contrast test.
 - Choose the specific Hugeicons for each badge and stage.
 - Use any preset blocks the owner provides (for example the dashboard shell and data table) instead of hand-built versions.
+
+---
+
+## Change log
+
+| Version | Date | Changes |
+|---|---|---|
+| v1 | 22 Nov 2026 | Approved by the owner |
+| v1.1 | 23 Nov 2026 | §6.15 and §9.4: the `EMAIL_NOT_ALLOWED` sign-in message for the Phase 1–2 allowlist |

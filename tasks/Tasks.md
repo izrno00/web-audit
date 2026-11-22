@@ -2,7 +2,7 @@
 
 **Audience:** the planning and executing agents who take these tasks, and the owner who reviews them.
 **Covers:** Phase 1 in full detail (T00–T49) and Phases 2–3 as an outline to be split up later.
-**Source of truth:** PRD.md, DB.md, Tech.md, UI-rules.md (approved 22 Nov 2026). If this file and the docs disagree, the docs win; stop and ask the owner.
+**Source of truth:** the four docs in `docs/`: PRD.md, DB.md, Tech.md and UI-rules.md (approved 22 Nov 2026). If this file and the docs disagree, the docs win; stop and ask the owner.
 
 ---
 
@@ -67,7 +67,7 @@ Prompt from the owner: *"Execute tasks/T07-<slug>-plan.md."*
 
 | ID | Task (slug) | Depends on | Done |
 |---|---|---|---|
-| T00 | Record Q&A decisions and commit the baseline (`docs-decisions`) | — | [ ] |
+| T00 | Record Q&A decisions and commit the baseline (`docs-decisions`) | — | [x] |
 | T01 | pnpm monorepo and CI skeleton (`monorepo`) | T00, OW1 | [ ] |
 | T02 | Design tokens, theme and base components (`tokens`) | T01, OW1 | [ ] |
 | T03 | Database 1: local Supabase, accounts, limits, websites, system (`db-accounts`) | T01, OW1 | [ ] |

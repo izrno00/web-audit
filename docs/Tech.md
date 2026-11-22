@@ -1,6 +1,6 @@
 # SiteLens — Technology and Architecture (Tech)
 
-**Status:** v1, approved by the product owner · 22 Nov 2026
+**Status:** v1.1 · approved by the product owner 22 Nov 2026, updated 23 Nov 2026 (see the change log at the end)
 **Companion documents:** [PRD.md](PRD.md) · [DB.md](DB.md) · [UI-rules.md](UI-rules.md)
 
 ---
@@ -10,10 +10,11 @@
 | Area | Choice | Why |
 |---|---|---|
 | Web app | **Next.js 16.4** (App Router), **React 19.3**, TypeScript 5, Tailwind CSS 4.3, **shadcn/ui** (preset `base-lyra`, Base UI primitives, Hugeicons) | Already in the repo. Server Components keep data access on the server |
-| Hosting (web) | **Vercel**, functions in `fra1` (Frankfurt) | Owner's choice. The functions sit next to the database |
+| Hosting (web) | **Vercel**, functions in `fra1` (Frankfurt), **Node 26** | Owner's choice. The functions sit next to the database |
 | Database, auth, storage, realtime | **Supabase** (Frankfurt): Postgres, Auth, Storage, Realtime | Owner's choice. One system with one access model (RLS) |
 | Background jobs | **pg-boss**, a queue inside Postgres | No extra service. Supports priorities, retries and schedules |
-| Audit worker | **Node 22 LTS** in **Docker**, with **Playwright (Chromium)** and **axe-core** | Audits run up to 15 min with a real browser, which serverless functions can't do |
+| Audit worker | **Node 26 LTS** in **Docker**, with **Playwright (Chromium)** and **axe-core** | Audits run up to 15 min with a real browser, which serverless functions can't do |
+| Node.js | **Node 26 LTS everywhere:** local development, CI, the worker image and Vercel | One version, so behavior matches between environments |
 | Lab performance data | **PageSpeed Insights API v5** (Lighthouse on Google's servers) | Consistent hardware and free. Only the Performance category is requested |
 | Field performance data | **Chrome UX Report (CrUX) API** | Free. Google plans to remove CrUX data from PageSpeed responses |
 | AI | **Claude API** through `@anthropic-ai/sdk`, behind a thin internal wrapper | One provider. The model per task is a setting |
@@ -41,7 +42,7 @@ flowchart LR
   user -.->|"Realtime: progress"| rt["Supabase Realtime"]
   rt --- db
   web -->|signed URLs| storage[("Supabase Storage")]
-  db -->|"job_outbox + NOTIFY"| worker["Audit worker (Docker)<br/>Node 22, Playwright, axe, pg-boss"]
+  db -->|"job_outbox + NOTIFY"| worker["Audit worker (Docker)<br/>Node 26, Playwright, axe, pg-boss"]
   worker -->|"results, heartbeat"| db
   worker -->|"screenshots, raw files, PDFs"| storage
   worker -->|"crawl and passive checks"| target[("Audited website")]
@@ -93,7 +94,9 @@ flowchart LR
 ├─ supabase/               config.toml, migrations/, seed.sql, tests/ (pgTAP)
 ├─ fixtures/sample-site/   static site with known problems, for the integration test
 ├─ .github/workflows/      ci.yml
-├─ PRD.md  DB.md  Tech.md  UI-rules.md  AGENTS.md
+├─ docs/                   PRD.md, DB.md, Tech.md, UI-rules.md (the source of truth)
+├─ tasks/                  Tasks.md (the task list and workflow) and one plan file per task
+├─ AGENTS.md               rules for coding agents
 ```
 
 - **TypeScript** uses project references.
@@ -128,6 +131,15 @@ flowchart LR
   - Stripe webhooks.
 - **Writes** go through **Server Actions** that call RPCs (`start_audit`, `cancel_audit`, `set_issue_status`…) or update the user's own rows. Inputs are validated with the Zod schemas from `packages/core`.
 - **Google sign-in:** Supabase Auth's Google provider; the callback is handled by `/auth/callback`.
+- **Sign-in allowlist (Phases 1–2):**
+  - `ALLOWED_EMAILS` is a comma-separated list of email addresses.
+  - Matching: trim spaces and lowercase both sides, then compare exactly. There are no wildcards and no Gmail normalization.
+  - **It fails closed:** when the variable is empty or not set, nobody can sign in.
+  - It is checked in two places:
+    - the `/auth/callback` Route Handler, which signs a non-allowlisted user out again and shows `EMAIL_NOT_ALLOWED` (UI-rules §9.4);
+    - the DAL guards (`requireUser()`, `requireAdmin()`, `requireOwner()`), so an existing session stops working when an email is taken off the list.
+  - The admin's email must be on the list too.
+  - It is removed in Phase 3, together with the variable.
 - **Email/password (Phase 3):** Supabase email confirmations sent through Resend as custom SMTP. Disposable email domains (L3) are checked in the sign-up Server Action before calling Supabase.
 - **Admin:** the `role` column is set by hand in SQL.
 
@@ -338,13 +350,13 @@ The code lives in `packages/core/net` and the worker's HTTP client. There are se
 3. **Pinned connections.** The Node HTTP client uses an `undici` Agent with a custom `lookup` that validates every connection, so DNS rebinding between the check and the connection doesn't work. Redirects are followed by hand (`redirect: 'manual'`) and every hop is checked again.
 4. **The browser:** `page.route('**/*')` checks each request's host with the same resolver (cached per audit) and aborts blocked ones. Service workers are blocked. WebSocket and other non-HTTP requests to blocked addresses are aborted.
 5. **Network level (Phase 3):** the worker host gets **egress firewall rules** that deny private, link-local and metadata ranges, so the browser's own DNS lookups can't reach internal addresses either.
-   - **Phases 1–2 accepted risk:** on the owner's PC, only the owner runs audits, so this remaining risk is accepted until the worker moves to a host.
+   - **Phases 1–2 accepted risk:** the worker runs on the owner's PC, and only people on the sign-in allowlist (§4.2) can start audits. That limits who can reach this remaining gap, so the risk is accepted until the worker moves to a host.
 6. **Exceptions:**
    - the PDF job may call the app's own origin through a signed print URL (explicit allowlist);
    - `SSRF_TEST_ALLOWLIST` allows `localhost` **only when `NODE_ENV=test`**, for the fixture site.
 
 ### 7.2 Browser isolation
-- Runs on the official Playwright Docker image (version pinned) as the **non-root `pwuser`**, with Chromium's sandbox **enabled** and Playwright's recommended seccomp profile. `--no-sandbox` is never used in production.
+- Runs on the official Playwright Docker image (`mcr.microsoft.com/playwright:v<version>-noble`, version pinned and matching the `playwright` npm package) as the **non-root `pwuser`**. From Playwright 1.65 this image ships **Node 26**, so no other base image or Node install is needed. Checked 23 Nov 2026 against the `v1.65.1` Dockerfile. If a pinned version ever ships an older Node, Node 26 is installed on top of the same image. The container runs with Chromium's sandbox **enabled** and Playwright's recommended seccomp profile. `--no-sandbox` is never used in production.
 - Every page gets a fresh context with:
   - no downloads (`acceptDownloads: false`) and all permissions denied;
   - dialogs dismissed automatically and pop-ups closed;
@@ -488,11 +500,11 @@ The worker only performs normal page loads, `HEAD`/`GET` requests to discovered 
 | Level | Tool | Scope |
 |---|---|---|
 | Unit | Vitest (`packages/core`) | URL normalization and site key, SSRF IP ranges and URL rules, robots and sitemap parsing, every check function (with HTML fixtures), scoring (including the PRD §8.5 example, caps, coverage and rounding), severity rules, issue lifecycle sequences, AI evidence validation, Zod schemas |
-| Database | pgTAP (`supabase test db`) | RLS for every table, the snapshot trigger, URL lock, `start_audit` for every limit L1–L13 and admin bypass logging, **concurrent `start_audit` calls** (a Vitest script with parallel connections), the `finish_audit` return and release rules |
+| Database | pgTAP (`supabase test db`) | RLS for every table, the snapshot trigger, URL lock, `start_audit` for every limit and admin bypass logging (following the phase split in DB.md §6.1), **concurrent `start_audit` calls** (a Vitest script with parallel connections), the `finish_audit` return and release rules |
 | Integration | Vitest + Playwright (`apps/worker`) | The whole pipeline against `fixtures/sample-site` served on localhost (with the test allowlist). It contains known problems: missing alt text, no H1, a broken link, mixed content, missing headers, thin content, sideways scrolling on mobile. PageSpeed, CrUX and Claude are **mocked with recorded fixtures**. The test checks the expected check results, findings and scores |
 | End-to-end (Phases 2–3) | Playwright Test | Sign-in (test user), quick audit with a stubbed worker, issue status flow, public report, the demo being read-only |
 
-**GitHub Actions (`ci.yml`)** runs on every pull request and on pushes to `main`:
+**GitHub Actions (`ci.yml`)** runs on **Node 26**, with pnpm installed through `npm i -g pnpm`, on every pull request and on pushes to `main`:
 1. `pnpm install` (cached)
 2. lint
 3. type check (`tsc -b`)
@@ -533,19 +545,20 @@ The worker only performs normal page loads, `HEAD`/`GET` requests to discovered 
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | web | Phase 3 |
 | `RESEND_API_KEY` | web, worker | Phase 3 |
 | `SSRF_TEST_ALLOWLIST` | worker (tests only) | Ignored unless `NODE_ENV=test` |
+| `ALLOWED_EMAILS` | web | Phases 1–2: the comma-separated sign-in allowlist (§4.2). Empty or not set means nobody can sign in. Removed in Phase 3 |
 
 ---
 
 ## 15. Setup checklist
 
 **Before Phase 1:**
-1. Install **Docker Desktop** (WSL 2 backend), **Node 22 LTS**, **pnpm** (`corepack enable`) and the **Supabase CLI**. *Docker Desktop is still missing.*
+1. Install **Docker Desktop** (WSL 2 backend), **Node 26 LTS**, **pnpm** (`npm i -g pnpm`, because Corepack no longer ships with Node) and the **Supabase CLI**. *Docker Desktop is still missing.*
 2. **Google Cloud project** (*still missing*):
    - enable the **PageSpeed Insights API** and the **Chrome UX Report API**, and create an API key restricted to those two;
    - check the PageSpeed quota in the console (open item O4);
    - set up the OAuth consent screen and an OAuth client (Web) with Supabase's callback URL, then add it to Supabase Auth's Google provider.
 3. **Supabase:** create the production project in **Frankfurt**, and copy the URL, keys and the session-pooler connection string.
-4. **Vercel:** import `izrno00/web-audit`, set the root directory to `apps/web` and the functions region to `fra1`, and add the environment variables (Production only).
+4. **Vercel:** import `izrno00/web-audit`, set the root directory to `apps/web`, the functions region to `fra1` and Node.js to **26.x**, and add the environment variables (Production only), including `ALLOWED_EMAILS`.
 5. **Anthropic:** the API key is ready. Set a monthly spend limit in the Anthropic Console if available, as an extra safety net.
 6. **GitHub:** add branch protection on `main` (CI required) and turn on secret scanning.
 
@@ -584,17 +597,17 @@ Phase 1 milestones are listed in dependency order; the day numbers are targets. 
 | Milestone | Contents |
 |---|---|
 | **M1, day 1: Foundation** | Monorepo restructure (pnpm, `apps/web` with the preset, `apps/worker`, `packages/core`), CI skeleton, local Supabase, **all migrations** with RLS and seed data, generated types, Google sign-in, app shell and sidebar, client and website CRUD |
-| **M2, day 2: Audit plumbing** | `core/url` and `core/net` with tests. `start_audit()` with the outbox and its pgTAP tests. Worker skeleton: dispatcher, pg-boss, heartbeat, cancellation, sweeper. Quick audit box, and the progress view with Realtime and polling |
+| **M2, day 2: Audit plumbing** | `core/url` and `core/net` with tests. `start_audit()` with the Phase 1 rules (L7, L10, L12, the website limit, admin bypass logging), the outbox and its pgTAP tests. L1–L6, L8, L9 and L11 arrive in Phase 3 by replacing the function, with no data migration (DB.md §6.1). Worker skeleton: dispatcher, pg-boss, heartbeat, cancellation, sweeper. Quick audit box, and the progress view with Realtime and polling |
 | **M3, day 3: Crawl and checks** | Discovery, rendering, screenshots, raw files. SEO, Technical & Security and Accessibility checks. Link checks, PageSpeed and CrUX |
 | **M4, day 4: Results** | Automated UX checks and page classification, scoring, findings and issue lifecycle. Results UI: the 5 tabs, issue detail and page detail |
-| **M5, day 5: AI and deployment** | AI tasks with cost logging, the "AI unavailable" banner and retry, the fixture integration test, deployment to Vercel and hosted Supabase with the worker on the PC, and the Sonnet vs Opus comparison run (O7) |
-| **M6: Landing page** | Designed with the owner, section by section. Also the `/bot` page |
+| **M5, day 5: AI and deployment** | AI tasks with cost logging, the "AI unavailable" banner and retry, the fixture integration test, deployment to Vercel and hosted Supabase with the worker on the PC, and the Sonnet vs Opus comparison (O7): agents build a script, and the owner runs it on real audits |
+| **M6: Landing page** | Agents build the `/bot` page and the landing page skeleton (header, footer, empty sections). The owner then designs the sections live, one at a time |
 
 **Phase 2:** issue statuses and history → comparison and trends → public reports → PDF and branding settings → visual analysis and score revisions.
 
 **Phase 3:**
 1. admin page;
-2. free plan rules L1–L13 and Turnstile;
+2. free plan rules L1–L13 and Turnstile, and removal of the sign-in allowlist;
 3. Stripe;
 4. domain, Resend and email/password sign-in;
 5. demo publishing and `/demo`;
@@ -614,6 +627,15 @@ Phase 1 milestones are listed in dependency order; the day numbers are targets. 
 | AI cost drift | Logged per run, the free budget (L8), the model per task as a setting, and a spend limit at Anthropic |
 | Supabase Free database or storage filling up | Passed checks store no evidence, files are compressed with 90-day retention, and Pro comes before launch |
 | Worker on the PC is offline | Audits stay `queued` and show their position; this is acceptable for the owner's own use in Phases 1–2 |
-| SSRF through the browser's own DNS lookups | Request interception now, an egress firewall in Phase 3; the accepted risk while only the owner uses it |
+| SSRF through the browser's own DNS lookups | Request interception now, an egress firewall in Phase 3; the risk is accepted while sign-in is limited to the allowlist |
 | Vercel Hobby forbids commercial use | Move to Vercel Pro before payments start (O9) |
 | The 5-day target is ambitious for one person | The scope is cut in phases. The data model is complete from day 1, so later phases don't migrate data |
+
+---
+
+## Change log
+
+| Version | Date | Changes |
+|---|---|---|
+| v1 | 22 Nov 2026 | Approved by the owner |
+| v1.1 | 23 Nov 2026 | §1, §2, §7.2, §13, §15: Node 26 everywhere (Vercel supports it; the Playwright 1.65 image ships it), pnpm through `npm i -g pnpm`. §3: docs live in `docs/`, task files in `tasks/`. §4.2, §7.1, §14, §18: the Phase 1–2 sign-in allowlist (`ALLOWED_EMAILS`). §13, §17 M2: the `start_audit` phase split. §17 M5: the O7 comparison is a script the owner runs. §17 M6: agents build the landing skeleton and `/bot`, and the owner designs the sections |
