@@ -2,29 +2,30 @@
 
 **Audience:** the planning and executing agents who take these tasks, and the owner who reviews them.
 **Covers:** Phase 1 in full detail (T00–T49) and Phases 2–3 as an outline to be split up later.
-**Source of truth:** the four docs in `docs/`: PRD.md, DB.md, Tech.md and UI-rules.md (approved 22 Nov 2026). If this file and the docs disagree, the docs win; stop and ask the owner.
+**Source of truth:** the four docs in `docs/`: PRD.md, DB.md, Tech.md and UI-rules.md (approved 22 Nov 2026). The order of authority, when to stop and ask, and the git rules are in `AGENTS.md`. This file doesn't repeat them.
 
 ---
 
 ## 1. How a task runs
 
-Every task goes through two agents, **one task at a time**. A task starts only when every task it depends on is merged into `main`.
+Every task goes through two agents: a planning agent and an executing agent. When a task may start, and how its branch is created and cleaned up, is in `AGENTS.md` (Git and branches).
 
 ### 1.1 Planning agent
 Prompt from the owner: *"You are the planning agent for task T07 in tasks/Tasks.md."*
 
 1. Read `AGENTS.md`, then this file's §1–§2 and the task's card.
-2. Read the doc sections listed under **Read** closely. Skim the rest of the four docs.
-3. Look at the current code. Before writing a plan for Next.js code, read the relevant guide in `node_modules/next/dist/docs/`. For Claude API calls, use the current Claude API reference (the `claude-api` skill), not memory.
-4. Write `tasks/T07-<slug>-plan.md` with these sections:
+2. Check that the task may start and create the branch `t07-<slug>` (`AGENTS.md`, Git and branches).
+3. Read the doc sections listed under **Read** closely. Skim the rest of the four docs.
+4. Look at the current code. For Next.js code, follow the Next.js rule in `AGENTS.md`. For Claude API calls, use the current Claude API reference (the `claude-api` skill), not memory.
+5. Write `tasks/T07-<slug>-plan.md` on the branch with these sections:
    - **Context**: what the task delivers and why.
    - **Files**: files to create or change.
    - **Steps**: in order, detailed enough for an agent that hasn't seen this conversation.
    - **Tests**: what is tested and how.
    - **Acceptance**: which PRD §16 items this covers, fully or partly.
    - **Assumptions**: implementation details chosen conservatively. The owner can veto them.
-   - **Questions for the owner**: anything that touches scope, schema, UI wording or limits, or isn't covered by the docs. **If there are questions, stop here.**
-5. Don't write code, don't commit.
+   - **Questions for the owner**: everything `AGENTS.md` says to stop and ask about. **If there are questions, stop here.**
+6. Don't write code, don't commit. Leave the plan file uncommitted on the branch.
 
 ### 1.2 Owner
 Reads the plan, answers the questions in the plan file, approves it.
@@ -32,30 +33,30 @@ Reads the plan, answers the questions in the plan file, approves it.
 ### 1.3 Executing agent
 Prompt from the owner: *"Execute tasks/T07-<slug>-plan.md."*
 
-1. Check that the dependencies are merged. Pull `main` and create the branch `t07-<slug>`.
-2. Implement the plan. If reality contradicts the plan in a way that touches scope, schema, UI wording or limits, stop and ask. Small implementation details: choose conservatively and note them in the PR.
-3. Meet the definition of done (§1.4). Tick the task in the status table (§3).
-4. Commit the plan file and the code, push, and open a PR with `gh`. The owner reviews and merges.
+1. Work on the branch `t07-<slug>` that the planning agent created, where the approved plan file is waiting uncommitted (`AGENTS.md`, Git and branches).
+2. Read the task's card and the doc sections listed under **Read**.
+3. Implement the plan. When reality contradicts it, follow the stop-and-ask rules in `AGENTS.md`.
+4. Meet the definition of done (§1.4). Tick the task in the status table (§3).
+5. Commit the plan file and the code, push, and open a PR with `gh`. The owner reviews and merges.
+6. When the owner says "merged", clean up the branch (`AGENTS.md`, Git and branches).
 
 ### 1.4 Definition of done (every task)
-- `pnpm lint`, `pnpm typecheck` and `pnpm test` pass. If `supabase/` changed, `supabase test db` passes too.
+- The pre-commit checks in `AGENTS.md` pass on the final commit, and CI is green.
 - New logic has tests, and the card's **Done when** holds.
-- The four docs are unchanged unless the card says otherwise. If a doc needs to change, stop and ask.
+- The four docs are unchanged, unless the card says to change them.
 - New environment variables are added to `.env.example`. No secrets are committed.
-- The PR description says what changed, how it was verified, which PRD §16 items it covers, and any assumptions.
+- The PR description says what changed, how it was verified, which PRD §16 items it covers, and the assumptions and notable choices.
 - UI tasks attach dev-server screenshots: light and dark, desktop and 390 px wide.
-- CI is green (from T01 on).
 
 ---
 
 ## 2. Standing rules and decisions
 
-- **Stay in the card's scope.** Items under **Not in this task** belong to other tasks. Don't build ahead. Don't add anything the docs don't describe or anything from a later phase.
+- **Stay in the card's scope.** Items under **Not in this task** belong to other tasks. Don't build ahead.
 - **Hosted services are owner-only.** Agents never run commands against hosted Supabase, Vercel, Google Cloud or GitHub settings. Those are the owner tasks (OW) in §4.
 - **No live external calls in tests.** PageSpeed, CrUX and Claude are tested with recorded fixtures or mocks.
 - **Explanation texts:** agents draft each check's title, description, impact and recommendation in the UI-rules §14 tone. The owner reviews them in the PR.
-- **"Proposed — review" values** are accepted for Phase 1 (O8). Use them as written.
-- **Node 26 everywhere** (local, CI, worker image, Vercel), with **pnpm** installed via `npm i -g pnpm`. Corepack no longer ships with Node.
+- **Node 26 everywhere** (local, CI, worker image, Vercel). pnpm is installed once, as OW1 describes, because Corepack no longer ships with Node.
 - **Scoring method version** is `2026.1`.
 - **Phase 1–2 sign-in allowlist:** only emails in `ALLOWED_EMAILS` can sign in (T00 documents it, T06 builds it). It is removed in Phase 3.
 - **`start_audit` in Phase 1** has L7, L10, L12, the website limit, admin bypass logging and the outbox. L1–L6, L8, L9 and L11 arrive in Phase 3.
