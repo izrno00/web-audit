@@ -1,8 +1,8 @@
 # SiteLens — Interface Rules (UI-rules)
 
-**Status:** v1.1 · approved by the product owner 22 Nov 2026, updated 23 Nov 2026 (see the change log at the end)
+**Status:** v1.2 · approved by the product owner 22 Nov 2026, updated 23 Nov 2026 (see the change log at the end)
 **Companion documents:** [PRD.md](PRD.md) · [DB.md](DB.md) · [Tech.md](Tech.md)
-**Source of the design system:** the shadcn preset already installed in the repo (`components.json`, `app/globals.css`, `app/layout.tsx`). The exact component list is finalized after connecting the shadcn MCP (§15).
+**Source of the design system:** the shadcn preset already installed in the repo (`components.json`, `app/globals.css`, `app/layout.tsx`). The installed component list is in §15.
 
 ---
 
@@ -28,7 +28,7 @@
 | Fonts | **Oxanium** for headings (`--font-heading`), **Outfit** for UI and body text (`--font-sans`), **Geist Mono** for code, URLs and selectors (`--font-mono`). Geist Sans is loaded in `layout.tsx` but unused, so remove it at implementation |
 | Icons | **Hugeicons** (`iconLibrary: hugeicons`). Outline style, 16 px inline and 20 px in buttons and navigation |
 | Logo (until a real one exists) | The wordmark "SiteLens" in Oxanium semibold, next to a Hugeicons search or lens icon in the primary color |
-| Themes | Light and dark from day one, via the `.dark` class, which follows the system by default and has a toggle. **The PDF is always light.** Public reports follow the viewer's system setting |
+| Themes | Light and dark from day one, via the `.dark` class (`next-themes`). With no saved choice the app follows the system setting. The top-bar toggle is one icon button that switches between light and dark, and the choice is saved in the browser (there is no "System" option). **The PDF is always light.** Public reports follow the viewer's system setting |
 | Motion | Short, functional transitions (150–200 ms). No decorative animation. Everything respects `prefers-reduced-motion` |
 
 ---
@@ -36,7 +36,9 @@
 ## 3. Color tokens
 
 ### 3.1 Existing (preset)
-`--background`, `--foreground`, `--card`, `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--border`, `--input`, `--ring`, `--chart-1…5` (an orange ramp) and the `--sidebar-*` tokens. They are defined in `app/globals.css` for `:root` and `.dark`. **They are used as is.**
+`--background`, `--foreground`, `--card`, `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--border`, `--input`, `--ring`, `--chart-1…5` (an orange ramp) and the `--sidebar-*` tokens. They are defined in `app/globals.css` for `:root` and `.dark`. **They are used as is,** with one change from the contrast test (§3.3): light `--muted-foreground` is `oklch(0.54 0.013 58.071)` instead of the preset's `0.553`, because the preset value was 4.41:1 on `--muted` (the "Not applicable" and "Info" badges).
+
+**`--link` (new)** is the color of text links: light `oklch(0.553 0.195 38.402)` (the same as `--primary`), dark `oklch(0.705 0.213 47.604)`. It exists because the dark `--primary` is only 2.69:1 as text on the dark background; it works as a button fill, not as link text. The Button `link` variant uses it.
 
 `--chart-1…5` is an orange ramp, so it is used only for **single-series brand visuals**, such as the landing page. Data charts use the category tokens (§3.4).
 
@@ -51,7 +53,7 @@ Each band has three tokens:
 |---|---|---|
 | `--score-good` | `oklch(0.62 0.16 152)` | `oklch(0.72 0.17 152)` |
 | `--score-good-fg` / `-bg` | `oklch(0.42 0.12 152)` / `oklch(0.95 0.04 152)` | `oklch(0.85 0.13 152)` / `oklch(0.30 0.06 152)` |
-| `--score-average` | `oklch(0.76 0.15 80)` | `oklch(0.80 0.15 85)` |
+| `--score-average` | `oklch(0.66 0.15 80)` | `oklch(0.80 0.15 85)` |
 | `--score-average-fg` / `-bg` | `oklch(0.47 0.10 70)` / `oklch(0.96 0.05 90)` | `oklch(0.88 0.12 85)` / `oklch(0.32 0.06 75)` |
 | `--score-poor` | `oklch(0.60 0.21 25)` | `oklch(0.68 0.19 25)` |
 | `--score-poor-fg` / `-bg` | `oklch(0.47 0.17 25)` / `oklch(0.95 0.03 25)` | `oklch(0.82 0.11 25)` / `oklch(0.31 0.08 25)` |
@@ -59,6 +61,8 @@ Each band has three tokens:
 The bands follow PRD §8.2: 0–49 is **Poor**, 50–89 is **Needs improvement** and 90–100 is **Good**.
 
 The amber "average" hue (75–90) is deliberately far from the brand orange (38), so a mid-range score never looks like a button.
+
+The light `--score-average` started at lightness 0.76, which is only 2.18:1 against the white card. It is 0.66 (3.16:1) so gauges and chart marks stay visible.
 
 ### 3.3 Severity, check results, statuses (new)
 
@@ -81,9 +85,13 @@ The amber "average" hue (75–90) is deliberately far from the brand orange (38)
 
 **Level badges replace result badges for checks that have levels** (SEO for now, PRD §7). They are told apart from "Not applicable" and the running state by their icon and label.
 
-**These are starting values.** Before merging, a contrast test script must confirm:
-- every fg/bg pair is **≥ 4.5:1**;
-- every solid mark is **≥ 3:1** against the card background, in both themes.
+**Token names.** Each family has `-fg` and `-bg` tokens: `--severity-high-fg` / `--severity-high-bg` (also `medium` and `low`), `--unverified-fg` / `-bg` and `--info-fg` / `-bg`. Critical has a solid `--severity-critical` and its text color `--severity-critical-fg`. They are mapped in `@theme inline`, so classes like `text-severity-high-fg` and `bg-info-bg` work. High, medium and low have **no solid color** yet; the task that builds the severity chart (§7.6) defines them.
+
+**Contrast test.** `apps/web/lib/tokens.test.ts` reads `globals.css` and runs in CI. In both themes it checks that:
+- every fg/bg pair is **≥ 4.5:1**, including the preset pairs that carry text and `--link`;
+- every solid mark (score bands, critical, the §3.4 category colors) is **≥ 3:1** against both the card and the page background.
+
+Token values must stay literal `oklch()` so the test can read them.
 
 ### 3.4 Category colors (data charts only)
 
@@ -95,11 +103,13 @@ The amber "average" hue (75–90) is deliberately far from the brand orange (38)
 | Technical & Security | `oklch(0.50 0.04 255)` (slate) | `oklch(0.72 0.04 255)` |
 | UX & Conversion | `oklch(0.60 0.18 340)` (magenta) | `oklch(0.72 0.16 340)` |
 
+The tokens are `--category-seo`, `--category-performance`, `--category-accessibility`, `--category-technical` and `--category-ux`.
+
 **Rule:** orange and red are never used for data series, so they can't be confused with the brand or with "poor".
 
 ### 3.5 Color rules
 - **Color never stands alone.** Every score, severity, result and status badge has **an icon and a text label**. Every score shows its number.
-- **Brand orange** (`--primary`) is used for primary buttons, links, the active navigation item, focus accents, the demo banner's call to action, and the logo. It is **never** used for a score, severity, result or audit status.
+- **Brand orange** (`--primary`) is used for primary buttons, links (through `--link`, §3.1), the active navigation item, focus accents, the demo banner's call to action, and the logo. It is **never** used for a score, severity, result or audit status.
 - **`--destructive`** is used only for destructive actions, such as delete buttons and their confirmation dialogs. It is not a severity color.
 
 ---
@@ -365,6 +375,7 @@ For table cells and lists: the number plus a small band dot, plus a tooltip with
   - **Severity distribution:** a stacked bar.
 - **Every chart has:** a title, a legend with direct labels, keyboard-reachable tooltips, and a **text alternative**. That is a visually hidden summary ("Overall score rose from 64 to 82 over 5 audits") plus a "View as table" toggle.
 - **Score axes** run 0–100 with band guide lines at 50 and 90.
+- **Reduced motion:** Recharts animates in JavaScript, which the global `prefers-reduced-motion` CSS rule doesn't reach. Charts turn their animation off (`isAnimationActive={false}`) when the user prefers reduced motion.
 
 ### 7.7 Forms
 - **Labels** always sit above the input; placeholders are never the only label. Helper text goes below.
@@ -610,17 +621,19 @@ Every page has the footer "SiteLens · example.com · 22 Nov 2026 · Page 3 of 1
 
 ---
 
-## 15. To finalize after connecting the shadcn MCP
+## 15. Component set (`base-lyra`)
 
-- Confirm which components the `base-lyra` preset provides, and install the ones these rules use:
+- **Installed in T02** from the `base-lyra` registry with the shadcn CLI, unchanged except where noted in the T02 PR:
   - layout and navigation: Sidebar, Breadcrumb, Tabs, Sheet, Dialog, Alert Dialog
   - data: Table, Chart, Progress, Skeleton, Accordion
   - controls: Dropdown Menu, Select, Toggle Group, Badge, Tooltip, Popover
-  - feedback: Sonner, Alert
-  - forms: Form, Input, Switch, Checkbox
+  - feedback: Sonner, Alert, Spinner, Empty
+  - surfaces: Card
+  - forms: **Field** and **Label** (Base UI based, used with Server Actions), Input, Switch, Checkbox. The registry's Form component (react-hook-form) is not used
   - identity: Avatar
-- Add the new tokens from §3 to `globals.css` (`:root` and `.dark`), map them in `@theme inline`, and run the contrast test.
-- Choose the specific Hugeicons for each badge and stage.
+- **Done in T02:** the §3 tokens in `globals.css` (`:root` and `.dark`), mapped in `@theme inline`, with the contrast test (§3.3).
+- **Reference page:** `/dev/ui` shows the logo, every token and every installed component in both themes. It exists only in development and returns "not found" in production.
+- Choose the specific Hugeicons for each badge and stage (T33 and the progress view).
 - Use any preset blocks the owner provides (for example the dashboard shell and data table) instead of hand-built versions.
 
 ---
@@ -631,3 +644,4 @@ Every page has the footer "SiteLens · example.com · 22 Nov 2026 · Page 3 of 1
 |---|---|---|
 | v1 | 22 Nov 2026 | Approved by the owner |
 | v1.1 | 23 Nov 2026 | §6.15 and §9.4: the `EMAIL_NOT_ALLOWED` sign-in message for the Phase 1–2 allowlist |
+| v1.2 | 23 Nov 2026 | T02. §2: light/dark only, following the system until the user picks one (`next-themes`). §3.1: light `--muted-foreground` 0.553 → 0.54 and the new `--link` token, from the contrast test. §3.2: light `--score-average` 0.76 → 0.66. §3.3: token names, no solid high/medium/low yet, the contrast test. §3.4: category token names. §3.5: links use `--link`. §7.6: charts turn off animation for reduced motion. §15: the installed component set (Field + Label instead of Form; Card, Spinner and Empty added) and `/dev/ui` |
