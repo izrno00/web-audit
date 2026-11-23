@@ -8,7 +8,7 @@ SiteLens audits websites in five categories (SEO, Performance, Accessibility, Te
 
 ## Local development
 
-**Prerequisites:** Node 26 and pnpm (`npm i -g pnpm`).
+**Prerequisites:** Node 26 and pnpm (`npm i -g pnpm`). On Windows, if `pnpm -v` prints nothing afterwards, npm blocked pnpm's install scripts: reinstall with `npm i -g pnpm --allow-scripts=pnpm`.
 
 ```bash
 pnpm install      # install all workspace packages
