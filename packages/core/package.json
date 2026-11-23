@@ -1,0 +1,16 @@
+{
+  "name": "@sitelens/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./catalog": "./src/catalog/index.ts",
+    "./checks": "./src/checks/index.ts",
+    "./scoring": "./src/scoring/index.ts",
+    "./issues": "./src/issues/index.ts",
+    "./url": "./src/url/index.ts",
+    "./net": "./src/net/index.ts",
+    "./ai": "./src/ai/index.ts",
+    "./db": "./src/db/index.ts"
+  }
+}
