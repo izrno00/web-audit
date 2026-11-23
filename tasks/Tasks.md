@@ -126,7 +126,7 @@ T49 only needs T07 but is placed last so it doesn't interrupt the pipeline work.
 
 | ID | When | What |
 |---|---|---|
-| OW1 | Before T01 | Install **Docker Desktop** (WSL 2 backend) and **pnpm** (`npm i -g pnpm`). Connect the **shadcn MCP** before T02. |
+| OW1 | Before T01 | Install **Docker Desktop** (WSL 2 backend) and **pnpm** (`npm i -g pnpm --allow-scripts=pnpm`; the flag is needed on Windows, where npm 12 otherwise blocks pnpm's install scripts and `pnpm` prints nothing). Connect the **shadcn MCP** before T02. |
 | OW2 | Before T06 (API key before T27) | **Google Cloud project:** OAuth consent screen and a Web OAuth client, with redirect URIs for local Supabase (`http://127.0.0.1:54321/auth/v1/callback`) and later the hosted project. Put the client ID and secret in the local env for `supabase/config.toml`. Enable the **PageSpeed Insights API** and the **Chrome UX Report API**, and create an API key restricted to those two. Check the PageSpeed quota (O4). |
 | OW3 | After T01 is merged | GitHub: branch protection on `main` (CI required) and secret scanning. |
 | OW4 | Before T48 | **Supabase** production project in Frankfurt (URL, keys, session-pooler connection string, Google provider). **Vercel**: import the repo with root `apps/web` and region `fra1`. **Anthropic**: set a monthly spend limit. |
