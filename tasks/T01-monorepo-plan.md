@@ -362,3 +362,15 @@ Then confirm:
 - `apps/web/AGENTS.md` is unchanged after `pnpm dev`;
 - **lint boundary:** temporarily add `import "react";` to a core file, check that `pnpm lint` fails with the core-boundary message, then remove it;
 - CI is green on the PR.
+
+---
+
+## Execution notes (23 Nov 2026)
+
+What happened during execution, where it differs from or adds to the plan above:
+
+- **Preconditions:** PR #1 was still open and pnpm wasn't installed. With the owner's approval, the executing agent merged PR #1 and installed pnpm 12.21.0.
+- **pnpm on Windows:** with npm 12, `npm i -g pnpm` blocks pnpm's install scripts, and the Windows shim then prints nothing. `npm i -g pnpm --allow-scripts=pnpm` fixes it; the README says so. On Linux (CI) the placeholder bin runs pnpm through Node, so CI uses the plan's command unchanged.
+- **Dependency builds:** `pnpm install` reported no blocked build scripts (sharp, unrs-resolver and `@tailwindcss/oxide` use prebuilt binaries), so `pnpm-workspace.yaml` has no allow list.
+- **TypeScript build info:** core and worker set `"tsBuildInfoFile": ".tsbuild/tsconfig.tsbuildinfo"`. Because their `rootDir` is `src`, TypeScript would otherwise write it next to `tsconfig.json`, outside the `.tsbuild/` cache folder.
+- **Spike:** `tsc -b`, `next build`, `node src/index.ts` (worker) and Vitest all worked with core imported from both apps. No fallback was needed.
