@@ -1,6 +1,6 @@
 # SiteLens — Product Requirements (PRD)
 
-**Status:** v1, approved by the product owner · 22 Nov 2026
+**Status:** v1.1 · approved by the product owner 22 Nov 2026, updated 23 Nov 2026 (see the change log at the end)
 **Companion documents:** [DB.md](DB.md) (data model) · [Tech.md](Tech.md) (architecture) · [UI-rules.md](UI-rules.md) (interface)
 
 Markers used in this document:
@@ -51,11 +51,14 @@ The documents describe the full product. Delivery happens in three phases, and e
 
 | Phase | Goal | Contents |
 |---|---|---|
-| **Phase 1 — Core** (target: about 5 days, plus the landing page) | The owner can audit real websites end to end | Monorepo, database and Google sign-in · websites and clients · quick audit box · the worker pipeline (discovery, rendering, all five categories with automated UX checks, page classification) · PageSpeed and CrUX data · scoring · AI executive summary, per-page content analysis and advice for the top 15 findings · live progress and cancellation · results UI with 5 tabs · issue grouping with automatic lifecycle (no manual statuses yet) · atomic audit-start function with the per-account limit and the hourly per-site limit · AI cost logging · a basic crawler info page · **landing page, designed with the owner section by section** · deployment to Vercel and hosted Supabase Free, with the worker running on the owner's PC |
+| **Phase 1 — Core** (target: about 5 days, plus the landing page) | The owner can audit real websites end to end | Monorepo, database and Google sign-in, **limited to a sign-in allowlist** (`ALLOWED_EMAILS`, kept through Phase 2) · websites and clients · quick audit box · the worker pipeline (discovery, rendering, all five categories with automated UX checks, page classification) · PageSpeed and CrUX data · scoring · AI executive summary, per-page content analysis and advice for the top 15 findings · live progress and cancellation · results UI with 5 tabs · issue grouping with automatic lifecycle (no manual statuses yet) · atomic audit-start function with the per-account limit and the hourly per-site limit · AI cost logging · a basic crawler info page · **landing page, designed with the owner section by section** · deployment to Vercel and hosted Supabase Free, with the worker running on the owner's PC |
 | **Phase 2 — Completeness** | All features of the full MVP | On-demand AI visual analysis and UX score revisions · manual issue statuses and status history · history, trends and comparing any two audits · public interactive reports · PDF reports with an optional user logo and company name |
-| **Phase 3 — Public launch** | Safe for strangers to use | `/demo` · the free plan with every abuse protection (§12) · Stripe Pro subscriptions · admin page · own domain, Resend, email/password sign-in and the "audit ready" email · Supabase Pro (and Vercel Pro if required, O9) · worker moved to a container host · Turnstile · Sentry · privacy policy and terms · GDPR export and deletion flows |
+| **Phase 3 — Public launch** | Safe for strangers to use | Open sign-up: **the sign-in allowlist is removed** · `/demo` · the free plan with every abuse protection (§12) · Stripe Pro subscriptions · admin page · own domain, Resend, email/password sign-in and the "audit ready" email · Supabase Pro (and Vercel Pro if required, O9) · worker moved to a container host · Turnstile · Sentry · privacy policy and terms · GDPR export and deletion flows |
 
 Phase 1 delivers the main features; polish comes after. The data model is built for the full product from day one, so later phases add features without migrating existing data.
+
+**Sign-in allowlist (Phases 1–2).** Only the email addresses listed in `ALLOWED_EMAILS` can sign in. Everyone else sees the `EMAIL_NOT_ALLOWED` message (UI-rules §9.4). The allowlist is removed in Phase 3, when the free plan and every abuse protection go live.
+- **Accepted risk:** in Phases 1–2, `start_audit` enforces only L7, L10, L12 and the website limit (DB.md §6.1). A free-plan account on the allowlist can therefore run more than one audit, because L1 arrives in Phase 3. This is accepted because only people the owner trusts are on the allowlist.
 
 ---
 
@@ -1082,5 +1085,14 @@ Visual analysis is possible on any audit whose screenshots are still stored.
 | O5 | The worker's container host (Railway, Fly.io or Render, in an EU region) and its current price | Phase 3 |
 | O6 | Domain name; the `/bot` URL in the user agent uses the Vercel domain until then | Before Phase 3 |
 | O7 | Final model per AI task, after the side-by-side test (§9.1) | End of Phase 1 |
-| O8 | Review of every **Proposed — review** default in this document | Before implementation |
+| O8 | Review of every **Proposed — review** default in this document. **Accepted for Phase 1 (23 Nov 2026); revisit with real audit data.** The markers stay in the text to show which values to revisit | Revisit after Phase 1 |
 | O9 | Vercel Hobby is for non-commercial use, so taking payments probably requires **Vercel Pro**. Check the current terms | Before Stripe goes live (Phase 3) |
+
+---
+
+## Change log
+
+| Version | Date | Changes |
+|---|---|---|
+| v1 | 22 Nov 2026 | Approved by the owner |
+| v1.1 | 23 Nov 2026 | §2: the Phase 1–2 sign-in allowlist (`ALLOWED_EMAILS`) and its accepted risk; removed in Phase 3. §17: O8 accepted for Phase 1 |
