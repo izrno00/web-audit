@@ -70,7 +70,7 @@ Prompt from the owner: *"Execute tasks/T07-<slug>-plan.md."*
 |---|---|---|---|
 | T00 | Record Q&A decisions and commit the baseline (`docs-decisions`) | — | [x] |
 | T01 | pnpm monorepo and CI skeleton (`monorepo`) | T00, OW1 | [x] |
-| T02 | Design tokens, theme and base components (`tokens`) | T01, OW1 | [ ] |
+| T02 | Design tokens, theme and base components (`tokens`) | T01, OW1 | [x] |
 | T03 | Database 1: local Supabase, accounts, limits, websites, system (`db-accounts`) | T01, OW1 | [ ] |
 | T04 | Database 2: audit snapshot tables, immutability, Storage (`db-snapshot`) | T03 | [ ] |
 | T05 | Database 3: issues, scores, AI, sharing tables, generated types (`db-issues-ai`) | T04 | [ ] |
