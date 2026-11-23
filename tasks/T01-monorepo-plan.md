@@ -1,7 +1,7 @@
 # T01 · pnpm monorepo and CI skeleton (`monorepo`): implementation plan
 
 **For:** the executing agent. **Approved by:** the owner, through plan mode (23 Nov 2026).
-**This file** is committed together with the code in the first T01 commit (Tasks.md §1.3). It is untracked until then: carry it over when you switch to the `t01-monorepo` branch.
+**This file** reached `main` with PR #1 (T00). Update it in the T01 PR if reality changes the plan (Tasks.md §1.3).
 
 ---
 
@@ -61,7 +61,7 @@ All 20 decisions below were agreed with the owner on 23 Nov 2026. Follow them ex
 3. Then:
    - `git switch main && git pull`;
    - `git switch -c t01-monorepo`;
-   - this plan file (untracked) moves to the new branch with you; commit it with the Step 1 docs.
+   - this plan file is already on `main`.
 4. **Choose the pnpm version:** run `npm view pnpm version` and use that exact version in `packageManager`.
 
 ---
@@ -304,7 +304,7 @@ AGENTS.md requires the docs to change before the code. Make these edits:
 ### Step 9: Finish
 
 - Tick T01 in the Tasks.md §3 table.
-- **Commits:** Step 1 docs and the plan file; the move and tooling; CI. Each ends with the Co-Authored-By line.
+- **Commits:** Step 1 docs; the move and tooling; CI. Each ends with the Co-Authored-By line.
 - **Push** `t01-monorepo` and open the PR with `gh`. The PR body covers:
   - what changed;
   - the spike results;
